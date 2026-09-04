@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kitchen-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kitchen_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d kitchen_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kitchen-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: kitchen-service
+    container_name: kitchen-service
+    ports:
+      - "8080:8080"
+    environment:
+      - HTTP_PORT=8080
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=kitchen_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_SSLMODE=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  restaurant-simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: restaurant-simulator
+    container_name: restaurant-simulator
+    ports:
+      - "8081:8081"
+    environment:
+      - RESTAURANT_HTTP_PORT=8081
+      - RESTAURANT_CALLBACK_URL=http://kitchen-service:8080/api/v1/webhooks/restaurant
+    depends_on:
+      - kitchen-service
+
+volumes:
+  postgres_data:

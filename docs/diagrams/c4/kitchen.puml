@@ -1,0 +1,34 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Авито.Кухня — Container Diagram (Level 2)
+
+Person(customer, "Покупатель", "Пользователь, заказывающий еду через веб-клиент")
+Person(restaurateur, "Сотрудник заведения", "Управляет меню и обрабатывает заказы")
+
+System_Boundary(avitoKitchen, "Авито.Кухня") {
+    Container(platformApi, "Platform API", "Go / REST", "Основной API: меню, корзина, заказы, каталог заведений")
+    ContainerDb(platformDb, "База данных платформы", "PostgreSQL", "Хранит заведения, меню, блюда, пользователей, заказы")
+}
+
+System_Boundary(restaurantSystem, "Сервис заведения") {
+    Container(restaurantApi, "Restaurant Service", "Go / REST", "Принимает заказы, обновляет статусы и остатки")
+    ContainerDb(restaurantDb, "БД заведения", "PostgreSQL / SQLite", "Локальные остатки, статусы заказов заведения")
+}
+
+System_Ext(webClient, "Web-клиент", "Не реализуется в рамках MVP, показан для контекста CJM")
+
+Rel(customer, webClient, "Использует", "HTTPS")
+Rel(webClient, platformApi, "Смотрит меню, оформляет заказ", "REST/JSON")
+
+Rel(restaurateur, restaurantApi, "Управляет заказами", "REST/JSON или UI заведения")
+
+Rel(platformApi, platformDb, "Читает/пишет", "SQL")
+Rel(restaurantApi, restaurantDb, "Читает/пишет", "SQL")
+
+Rel(platformApi, restaurantApi, "POST /webhooks/orders\n(новый заказ)", "REST/JSON")
+Rel(restaurantApi, platformApi, "PATCH /orders/{id}/status\n(смена статуса)", "REST/JSON")
+
+@enduml
