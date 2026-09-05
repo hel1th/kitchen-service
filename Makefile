@@ -1,7 +1,15 @@
-.PHONY: build run lint test test-coverage docker-up docker-down migrate-up migrate-down diagrams
+-include .env
+export
+
+.PHONY: all build run run-restaurant lint test test-coverage docker-up docker-down migrate-up migrate-down migrate-create diagrams clean
 
 APP_NAME=kitchen-service
 RESTAURANT_NAME=restaurant-simulator
+
+DB_DSN ?= postgres://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@$(POSTGRES_HOST):$(POSTGRES_PORT)/$(POSTGRES_DB)?sslmode=$(POSTGRES_SSLMODE)
+MIGRATIONS_DIR ?= migrations
+
+all: build
 
 build:
 	go build -o bin/$(APP_NAME) ./cmd/kitchen-service
@@ -29,5 +37,17 @@ docker-up:
 docker-down:
 	docker compose down -v
 
+migrate-up:
+	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" up
+
+migrate-down:
+	goose -dir $(MIGRATIONS_DIR) postgres "$(DB_DSN)" down
+
+migrate-create:
+	goose -dir $(MIGRATIONS_DIR) create $(name) sql
+
 diagrams:
-	java -jar tools/plantuml-mit-1.2026.7.jar docs/diagrams/**/*.puml
+	java -jar tools/plantuml-mit-1.2026.7.jar -r "docs/diagrams/**.puml"
+
+clean:
+	rm -rf bin/ coverage.out coverage.html
