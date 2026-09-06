@@ -28,13 +28,19 @@ services:
       - HTTP_PORT=8080
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_DB=kitchen_db
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=${POSTGRES_DB:-kitchen_db}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_SSLMODE=disable
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/v1/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
 
   restaurant-simulator:
     build:
@@ -46,9 +52,10 @@ services:
       - "8081:8081"
     environment:
       - RESTAURANT_HTTP_PORT=8081
-      - RESTAURANT_CALLBACK_URL=http://kitchen-service:8080/api/v1/webhooks/restaurant
+      - KITCHEN_SERVICE_URL=http://kitchen-service:8080/api/v1
     depends_on:
-      - kitchen-service
+      kitchen-service:
+        condition: service_healthy
 
 volumes:
   postgres_data:

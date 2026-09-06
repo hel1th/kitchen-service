@@ -1,0 +1,890 @@
+openapi: 3.0.3
+info:
+  title: Avito.Kitchen Platform API
+  description: >
+    API платформы Авито.Кухня: каталог заведений, меню, корзина, заказы.
+
+    Аутентификация не реализована (по условиям задания) — пользователь
+    идентифицируется заголовком X-User-Id. При первом обращении с новым
+    X-User-Id пользователь автоматически заводится в БД (upsert),
+    отдельного signup не требуется.
+
+    Заведения считаются предзаполненными (сидинг через миграции),
+    self-registration не предусмотрен. Адрес для доставки вебхуков
+    заведению (webhook_url) хранится в доменной модели заведения и
+    в БД, но не управляется через публичное API в рамках MVP.
+
+    Межсервисная авторизация (проверка, что PATCH /orders/{id}/status
+    вызывает именно "тот самый" сервис заведения, а не любой желающий)
+    не реализована — это осознанное упрощение MVP, следуя условиям
+    задания (авторизацию не делать).
+  version: 0.2.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+
+tags:
+  - name: System
+    description: Системные эндпоинты проверки состояния
+  - name: Restaurants
+    description: Каталог заведений и управление их статусом
+  - name: Menu
+    description: Категории и блюда заведения
+  - name: Cart
+    description: Корзина пользователя
+  - name: Orders
+    description: Оформление и мониторинг заказов
+  - name: Integrations
+    description: Входящие вызовы от сервисов заведений
+
+paths:
+  /healthz:
+    get:
+      tags: [System]
+      summary: Проверка работоспособности сервиса
+      responses:
+        "200":
+          description: Сервис работает нормально
+
+  /restaurants:
+    get:
+      tags: [Restaurants]
+      summary: Список заведений
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/RestaurantStatus"
+          description: Фильтр по статусу заведения
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Список заведений
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RestaurantList"
+
+  /restaurants/{restaurantId}:
+    get:
+      tags: [Restaurants]
+      summary: Получить заведение по id
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+      responses:
+        "200":
+          description: Заведение
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Restaurant"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /restaurants/{restaurantId}/status:
+    patch:
+      tags: [Restaurants]
+      summary: Открыть/закрыть заведение
+      description: >
+        Закрытие ресторана (status=closed) блокирует только новые
+        сценарии на стороне клиента: нельзя добавить блюдо в корзину
+        (409) и нельзя оформить заказ (409), если он успел закрыться
+        между сборкой корзины и checkout. На уже идущие заказы
+        (cooking/ready) статус ресторана не влияет — они доводятся
+        до конца как обычно. Редактирование меню разрешено независимо
+        от статуса ресторана.
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: "#/components/schemas/RestaurantStatus"
+      responses:
+        "200":
+          description: Статус обновлён
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Restaurant"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /restaurants/{restaurantId}/orders:
+    get:
+      tags: [Restaurants, Orders]
+      summary: Список заказов заведения
+      description: >
+        Операционный список заказов ресторана (для его собственной
+        админки). Не является механизмом восстановления недоставленных
+        вебхуков — это отдельная функция просмотра, не связанная с
+        обработкой пропущенных уведомлений (см. описание вебхука ниже).
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/OrderStatus"
+          description: Фильтр по статусу заказа
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Список заказов заведения
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderList"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /restaurants/{restaurantId}/menu:
+    get:
+      tags: [Menu]
+      summary: Получить меню заведения (категории с блюдами)
+      description: >
+        Возвращает только "живые" блюда (deletedAt IS NULL). Блюда,
+        временно отсутствующие (available=false), остаются в выдаче,
+        чтобы клиент мог показать их как недоступные, а не скрывать.
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+      responses:
+        "200":
+          description: Меню заведения
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CategoryWithDishes"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /restaurants/{restaurantId}/categories:
+    post:
+      tags: [Menu]
+      summary: Добавить категорию меню
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                sortOrder:
+                  type: integer
+      responses:
+        "201":
+          description: Категория создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Category"
+
+  /restaurants/{restaurantId}/categories/{categoryId}:
+    delete:
+      tags: [Menu]
+      summary: Удалить категорию
+      description: >
+        Запрещено, если в категории есть хотя бы одно блюдо — включая
+        мягко удалённые (deletedAt IS NOT NULL), т.к. такое блюдо можно
+        восстановить и оно должно на что-то ссылаться. Сначала нужно
+        перенести (PATCH categoryId) или полностью не иметь блюд в
+        категории.
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Категория удалена
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: В категории есть блюда (в т.ч. удалённые), удаление запрещено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /restaurants/{restaurantId}/dishes:
+    post:
+      tags: [Menu]
+      summary: Добавить блюдо
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DishInput"
+      responses:
+        "201":
+          description: Блюдо создано
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dish"
+        "404":
+          description: categoryId не найден среди категорий этого заведения
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /restaurants/{restaurantId}/dishes/{dishId}:
+    patch:
+      tags: [Menu]
+      summary: Изменить название/описание/цену/категорию блюда
+      description: >
+        Позволяет в т.ч. перенести блюдо в другую категорию (categoryId).
+        Если указанная categoryId существует, но принадлежит другому
+        restaurantId — возвращается 404 (категория считается
+        "не найденной" в контексте этого заведения, а не 409).
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+        - $ref: "#/components/parameters/DishId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                categoryId:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                  format: float
+                  minimum: 0
+      responses:
+        "200":
+          description: Блюдо обновлено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dish"
+        "404":
+          description: Блюдо не найдено, либо categoryId не принадлежит этому заведению
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags: [Menu]
+      summary: Удалить блюдо (soft-delete)
+      description: >
+        Проставляет deletedAt, физически строка не удаляется (нужна
+        для ссылок из старых заказов и восстановления). После удаления
+        блюдо пропадает из GET /menu и недоступно для добавления в
+        корзину (трактуется как unavailable при checkout существующих
+        позиций в чужих корзинах).
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+        - $ref: "#/components/parameters/DishId"
+      responses:
+        "204":
+          description: Блюдо удалено
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /restaurants/{restaurantId}/dishes/{dishId}/restore:
+    post:
+      tags: [Menu]
+      summary: Восстановить ранее удалённое блюдо
+      description: >
+        Снимает deletedAt. Поле available при этом не меняется —
+        остаётся таким, каким было на момент удаления. Если блюдо
+        не было удалено, возвращается 404.
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+        - $ref: "#/components/parameters/DishId"
+      responses:
+        "200":
+          description: Блюдо восстановлено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dish"
+        "404":
+          description: Блюдо не найдено или не было удалено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /restaurants/{restaurantId}/dishes/{dishId}/availability:
+    patch:
+      tags: [Menu]
+      summary: Изменить наличие блюда (в наличии / закончилось)
+      description: Применимо только к неудалённым блюдам (deletedAt IS NULL).
+      parameters:
+        - $ref: "#/components/parameters/RestaurantId"
+        - $ref: "#/components/parameters/DishId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [available]
+              properties:
+                available:
+                  type: boolean
+      responses:
+        "200":
+          description: Наличие обновлено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dish"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /cart:
+    get:
+      tags: [Cart]
+      summary: Получить текущую корзину пользователя
+      description: >
+        Цены (CartItem.price) — живые, пересчитываются на момент
+        запроса, а не фиксируются при добавлении в корзину. Поле
+        available у каждой позиции тоже отражает текущее состояние
+        блюда, чтобы клиент мог показать "закончилось" ещё до checkout.
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "200":
+          description: Корзина (пустая, если ещё не создана)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+    delete:
+      tags: [Cart]
+      summary: Очистить корзину
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "204":
+          description: Корзина очищена
+
+  /cart/items:
+    post:
+      tags: [Cart]
+      summary: Добавить блюдо в корзину
+      description: >
+        Если корзина пуста — создаётся и привязывается к restaurantId
+        блюда. Если в корзине уже есть блюда из другого заведения —
+        409. Если заведение блюда сейчас closed — 409. Если dishId уже
+        есть в корзине, quantity складывается с существующим (новая
+        строка не создаётся, id позиции не меняется). Верхней границы
+        на quantity нет. Всегда возвращает 201, даже при инкременте
+        существующей позиции.
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dishId, quantity]
+              properties:
+                dishId:
+                  type: string
+                  format: uuid
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        "201":
+          description: Блюдо добавлено в корзину (или quantity увеличен)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: >
+            Конфликт: либо блюда из другого заведения уже в корзине,
+            либо заведение сейчас закрыто. Различаются по полю code
+            в Error ("CART_MULTI_RESTAURANT" / "RESTAURANT_CLOSED").
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/Error"
+                  - $ref: "#/components/schemas/RestaurantClosedError"
+
+  /cart/items/{itemId}:
+    patch:
+      tags: [Cart]
+      summary: Изменить количество блюда в корзине
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+      responses:
+        "200":
+          description: Количество обновлено
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Cart"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Cart]
+      summary: Удалить блюдо из корзины
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - name: itemId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Блюдо удалено из корзины
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders:
+    post:
+      tags: [Orders]
+      summary: Оформить заказ (checkout текущей корзины)
+      description: >
+        Сверяет корзину с актуальным состоянием блюд перед созданием
+        заказа. Если что-то недоступно/удалено — обновляет позиции
+        корзины и возвращает 409 со списком unavailableDishIds; заказ
+        не создаётся, повторный вызов после ознакомления с ошибкой
+        проходит успешно. Если заведение корзины успело закрыться —
+        отдельная ошибка RestaurantClosedError (409), корзина в этом
+        случае не трогается. При успехе заказ создаётся и корзина
+        атомарно очищается в той же транзакции.
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+      responses:
+        "201":
+          description: Заказ создан, корзина очищена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Корзина пуста
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Часть блюд недоступна, либо заведение закрыто
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/UnavailableItemsError"
+                  - $ref: "#/components/schemas/RestaurantClosedError"
+    get:
+      tags: [Orders]
+      summary: Список заказов пользователя
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Offset"
+      responses:
+        "200":
+          description: Список заказов
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderList"
+
+  /orders/{orderId}:
+    get:
+      tags: [Orders]
+      summary: Получить заказ по id (мониторинг статуса)
+      parameters:
+        - $ref: "#/components/parameters/XUserId"
+        - $ref: "#/components/parameters/OrderId"
+      responses:
+        "200":
+          description: Заказ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /orders/{orderId}/status:
+    patch:
+      tags: [Integrations]
+      summary: Смена статуса заказа сервисом заведения
+      description: >
+        Вызывается сервисом заведения при изменении статуса заказа.
+        Разрешённые переходы: created→cooking, created→cancelled,
+        cooking→ready. Откат назад и пропуск cooking запрещены.
+        ready и cancelled — терминальные статусы. Идемпотентен:
+        повторный вызов с тем же статусом, в котором заказ уже
+        находится, возвращает 200 без побочных эффектов. Недопустимый
+        переход — 409. Проверка, что вызывающий сервис действительно
+        владеет этим заказом, не реализована (см. описание info) —
+        ограничение MVP.
+      parameters:
+        - $ref: "#/components/parameters/OrderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: "#/components/schemas/OrderStatus"
+      responses:
+        "200":
+          description: Статус обновлён (или не изменился — idempotent-повтор)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: Недопустимый переход статуса
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  parameters:
+    RestaurantId:
+      name: restaurantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DishId:
+      name: dishId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    OrderId:
+      name: orderId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    XUserId:
+      name: X-User-Id
+      in: header
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: >
+        Идентификатор пользователя (без аутентификации). При первом
+        обращении с новым значением пользователь автоматически
+        заводится в БД.
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+  responses:
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    RestaurantStatus:
+      type: string
+      enum: [open, closed]
+
+    OrderStatus:
+      type: string
+      enum: [created, cooking, ready, cancelled]
+      description: >
+        Допустимые переходы: created→cooking, created→cancelled,
+        cooking→ready. ready и cancelled терминальные. Откат назад
+        и пропуск cooking запрещены. Повторная установка того же
+        статуса — не ошибка (идемпотентность).
+
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Общее количество элементов без учёта limit/offset
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    Restaurant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/RestaurantStatus"
+
+    RestaurantList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Restaurant"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        restaurantId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        sortOrder:
+          type: integer
+
+    Dish:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        restaurantId:
+          type: string
+          format: uuid
+        categoryId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+        available:
+          type: boolean
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: null, если блюдо не удалено
+
+    DishInput:
+      type: object
+      required: [categoryId, name, price]
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: float
+          minimum: 0
+
+    CategoryWithDishes:
+      allOf:
+        - $ref: "#/components/schemas/Category"
+        - type: object
+          properties:
+            dishes:
+              type: array
+              items:
+                $ref: "#/components/schemas/Dish"
+
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        dishId:
+          type: string
+          format: uuid
+        dishName:
+          type: string
+        price:
+          type: number
+          format: float
+          description: Живая цена блюда на момент запроса, не снэпшот
+        quantity:
+          type: integer
+        available:
+          type: boolean
+          description: >
+            Живой статус блюда на момент запроса (false — временно
+            нет в наличии либо удалено из меню)
+
+    Cart:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        restaurantId:
+          type: string
+          format: uuid
+          nullable: true
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CartItem"
+
+    OrderItem:
+      type: object
+      properties:
+        dishId:
+          type: string
+          format: uuid
+        dishName:
+          type: string
+          description: Снапшот названия на момент заказа
+        priceSnapshot:
+          type: number
+          format: float
+          description: Снапшот цены на момент заказа
+        quantity:
+          type: integer
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: integer
+          format: int64
+        restaurantId:
+          type: string
+          format: uuid
+        status:
+          $ref: "#/components/schemas/OrderStatus"
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    OrderList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        pagination:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+          description: >
+            Машиночитаемый код ошибки, напр. CART_MULTI_RESTAURANT,
+            RESTAURANT_CLOSED, CATEGORY_NOT_EMPTY, INVALID_TRANSITION
+        message:
+          type: string
+
+    UnavailableItemsError:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+        - type: object
+          properties:
+            unavailableDishIds:
+              type: array
+              items:
+                type: string
+                format: uuid
+
+    RestaurantClosedError:
+      allOf:
+        - $ref: "#/components/schemas/Error"
+        - type: object
+          properties:
+            restaurantId:
+              type: string
+              format: uuid
