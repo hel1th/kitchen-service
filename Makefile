@@ -1,7 +1,7 @@
 -include .env
 export
 
-.PHONY: all build run run-restaurant lint test test-coverage docker-up docker-down migrate-up migrate-down migrate-create diagrams clean
+.PHONY: all build run run-restaurant lint test test-coverage generate docker-up docker-down migrate-up migrate-down migrate-create diagrams clean
 
 APP_NAME=kitchen-service
 RESTAURANT_NAME=restaurant-simulator
@@ -20,6 +20,9 @@ run:
 
 run-restaurant:
 	go run ./cmd/restaurant-simulator
+
+generate:
+	oapi-codegen -config api/openapi/oapi-codegen.yaml api/openapi/openapi.yaml
 
 lint:
 	golangci-lint run ./...
@@ -47,7 +50,7 @@ migrate-create:
 	goose -dir $(MIGRATIONS_DIR) create $(name) sql
 
 diagrams:
-	java -jar tools/plantuml-mit-1.2026.7.jar -r "docs/diagrams/**.puml"
+	java -DRELATIVE_INCLUDE="." -jar tools/plantuml-mit-1.2026.7.jar -r "docs/diagrams/**.puml"
 
 clean:
 	rm -rf bin/ coverage.out coverage.html

@@ -1,0 +1,10 @@
+.git
+.gitignore
+docs/
+tools/
+bin/
+*.md
+coverage.out
+coverage.html
+.vscode/
+.idea/
