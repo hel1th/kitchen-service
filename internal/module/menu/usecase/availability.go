@@ -39,7 +39,7 @@ type AvailabilityChecker interface {
 	CheckAvailability(ctx context.Context, restaurantID uuid.UUID, dishIDs []uuid.UUID) ([]UnavailableDish, error)
 }
 
-// MenuDishProvider provides dish details needed across module boundaries (e.g. for cart item enrichment and validation). //nolint:lll
+// MenuDishProvider provides dish details needed across module boundaries
 type MenuDishProvider interface {
 	GetDish(ctx context.Context, dishID uuid.UUID) (*DishInfo, error)
 	GetDishesByIDs(ctx context.Context, dishIDs []uuid.UUID) (map[uuid.UUID]DishInfo, error)

@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hel1th/kitchen-service/internal/api/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hel1th/kitchen-service/internal/api/gen"
 )
 
 func TestCartAPI(t *testing.T) {
@@ -50,7 +51,7 @@ func TestCartAPI(t *testing.T) {
 		require.NotNil(t, cart.Items)
 		assert.Len(t, *cart.Items, 1)
 		assert.Equal(t, 2, *(*cart.Items)[0].Quantity)
-		
+
 		addedItemID = (*cart.Items)[0].Id.String()
 	})
 

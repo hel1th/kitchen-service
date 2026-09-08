@@ -216,7 +216,7 @@ func (r *DishRepo) SoftDelete(ctx context.Context, restaurantID, id uuid.UUID, a
 		return fmt.Errorf("soft delete dish: %w", err)
 	}
 
-	if tag.RowsAffected() == 0 { //nolint:nestif
+	if tag.RowsAffected() == 0 { //nolint:nestif // basic conditional handling
 		var deletedAt *time.Time
 		checkQuery := `SELECT deleted_at FROM dishes WHERE id = $1 AND restaurant_id = $2`
 		errCheck := r.db.QueryRow(ctx, checkQuery, id, restaurantID).Scan(&deletedAt)
@@ -263,7 +263,7 @@ func (r *DishRepo) Restore(
 		&restored.CreatedAt,
 		&restored.UpdatedAt,
 	)
-	if err != nil { //nolint:nestif
+	if err != nil { //nolint:nestif // basic conditional handling
 		if errors.Is(err, pgx.ErrNoRows) {
 			var deletedAt *time.Time
 			checkQuery := `SELECT deleted_at FROM dishes WHERE id = $1 AND restaurant_id = $2`
@@ -428,7 +428,7 @@ func (r *DishRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Dish
 func (r *DishRepo) GetMenuWithDishes(
 	ctx context.Context,
 	restaurantID uuid.UUID,
-) ([]domain.CategoryWithDishes, error) { //nolint:funlen
+) ([]domain.CategoryWithDishes, error) {
 	categoriesQuery := `
 		SELECT id, restaurant_id, name, sort_order
 		FROM categories
@@ -445,19 +445,19 @@ func (r *DishRepo) GetMenuWithDishes(
 	categories := make([]domain.Category, 0)
 	for catRows.Next() {
 		var cat domain.Category
-		if err := catRows.Scan(
+		if scanErr := catRows.Scan(
 			&cat.ID,
 			&cat.RestaurantID,
 			&cat.Name,
 			&cat.SortOrder,
-		); err != nil {
-			return nil, fmt.Errorf("scan category for menu: %w", err)
+		); scanErr != nil {
+			return nil, fmt.Errorf("scan category for menu: %w", scanErr)
 		}
 		categories = append(categories, cat)
 	}
 
-	if err := catRows.Err(); err != nil {
-		return nil, fmt.Errorf("iterate categories for menu: %w", err)
+	if iterErr := catRows.Err(); iterErr != nil {
+		return nil, fmt.Errorf("iterate categories for menu: %w", iterErr)
 	}
 
 	dishesQuery := `

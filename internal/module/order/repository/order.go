@@ -24,7 +24,11 @@ func NewOrderRepo(pool *pgxpool.Pool) *OrderRepo {
 	return &OrderRepo{pool: pool}
 }
 
-func (r *OrderRepo) CreateOrder(ctx context.Context, order *domain.Order, cartID uuid.UUID) error { //nolint:funlen
+func (r *OrderRepo) CreateOrder(
+	ctx context.Context,
+	order *domain.Order,
+	cartID uuid.UUID,
+) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)

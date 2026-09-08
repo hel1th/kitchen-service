@@ -27,7 +27,10 @@ func NewRestaurantRepo(db database.DBTX) *RestaurantRepo {
 }
 
 // Create inserts a new restaurant into the database.
-func (r *RestaurantRepo) Create(ctx context.Context, restaurant *domain.Restaurant) (*domain.Restaurant, error) {
+func (r *RestaurantRepo) Create(
+	ctx context.Context,
+	restaurant *domain.Restaurant,
+) (*domain.Restaurant, error) {
 	if restaurant.ID == uuid.Nil {
 		restaurant.ID = uuid.New()
 	}
@@ -136,7 +139,10 @@ func (r *RestaurantRepo) UpdateStatus(
 }
 
 // List returns a paginated list of restaurants matching the filter, along with the total count.
-func (r *RestaurantRepo) List(ctx context.Context, filter usecase.ListFilter) ([]domain.Restaurant, int, error) { //nolint:funlen
+func (r *RestaurantRepo) List(
+	ctx context.Context,
+	filter usecase.ListFilter,
+) ([]domain.Restaurant, int, error) {
 	limit := filter.Limit
 	if limit <= 0 {
 		limit = 20
@@ -144,10 +150,7 @@ func (r *RestaurantRepo) List(ctx context.Context, filter usecase.ListFilter) ([
 	if limit > 100 {
 		limit = 100
 	}
-	offset := filter.Offset
-	if offset < 0 {
-		offset = 0
-	}
+	offset := max(filter.Offset, 0)
 
 	var statusParam *string
 	if filter.Status != nil {

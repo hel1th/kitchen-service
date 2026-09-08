@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hel1th/kitchen-service/internal/api/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hel1th/kitchen-service/internal/api/gen"
 )
 
 func TestRestaurantsAPI(t *testing.T) {

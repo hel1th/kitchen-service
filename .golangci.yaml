@@ -27,7 +27,7 @@ linters:
     - asasalint
     - gosec
     - lll
-    - funlen
+    # - funlen
     - gocyclo
     - gocognit
     - nestif
@@ -49,6 +49,8 @@ linters:
 
   settings:
     errcheck:
+      exclude-functions:
+        - (*encoding/json.Encoder).Encode
       check-type-assertions: true
       check-blank: false
 
@@ -110,6 +112,9 @@ linters:
         - performance
         - opinionated
       disabled-checks:
+        - rangeValCopy
+        - exitAfterDefer
+        - tooManyResultsChecker
         - whyNoLint
         - hugeParam
         - ruleguard
@@ -177,6 +182,8 @@ linters:
           - goconst
           - funlen
           - errcheck
+          - revive
+          - lll
       - path: internal/module/.*/domain/.*_test\.go
         linters:
           - depguard

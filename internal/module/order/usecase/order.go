@@ -73,8 +73,8 @@ func (uc *OrderUsecase) AddToCart(ctx context.Context, userID int64, dishID uuid
 		return err
 	}
 
-	if err := cart.ValidateRestaurant(dish.RestaurantID); err != nil {
-		return err
+	if valErr := cart.ValidateRestaurant(dish.RestaurantID); valErr != nil {
+		return valErr
 	}
 
 	isOpen, err := uc.restProvider.IsOpen(ctx, dish.RestaurantID)
@@ -157,7 +157,7 @@ func (uc *OrderUsecase) GetCart(ctx context.Context, userID int64) (*CartWithDet
 }
 
 // Checkout creates an order from the user's cart and clears the cart.
-func (uc *OrderUsecase) Checkout(ctx context.Context, userID int64) (*domain.Order, error) { //nolint:funlen
+func (uc *OrderUsecase) Checkout(ctx context.Context, userID int64) (*domain.Order, error) {
 	cart, err := uc.cartRepo.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -213,12 +213,11 @@ func (uc *OrderUsecase) Checkout(ctx context.Context, userID int64) (*domain.Ord
 	}
 
 	if uc.webhookSender != nil {
-		// Attempting best-effort async webhook delivery
-		go func() {
-			bgCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			_ = uc.webhookSender.SendOrderCreated(bgCtx, order)
-		}()
+		bgCtx := context.WithoutCancel(ctx)
+		go func(ctx context.Context) {
+			// simulate an async processing
+			_ = uc.webhookSender.SendOrderCreated(ctx, order)
+		}(bgCtx)
 	}
 
 	return order, nil

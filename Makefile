@@ -22,7 +22,7 @@ run-restaurant:
 	go run ./cmd/restaurant-simulator
 
 generate:
-	oapi-codegen -config oapi-codegen.yaml api/openapi/openapi.yaml
+	oapi-codegen -config api/openapi/oapi-codegen.yaml api/openapi/openapi.yaml
 
 lint:
 	golangci-lint run ./...

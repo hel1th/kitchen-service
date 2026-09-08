@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/hel1th/kitchen-service/internal/app"
 	"github.com/hel1th/kitchen-service/internal/config"
+	"github.com/hel1th/kitchen-service/internal/logger"
 )
 
 func main() {
@@ -20,13 +22,18 @@ func main() {
 		log.Fatalf("failed to load configuration: %v", err)
 	}
 
-	application, err := app.New(ctx, cfg)
+	logg := logger.Setup(cfg.Log.Level)
+	slog.SetDefault(logg)
+
+	application, err := app.New(ctx, cfg, logg)
 	if err != nil {
-		log.Fatalf("failed to initialize app: %v", err)
+		logg.Error("failed to initialize app", slog.Any("error", err))
+		os.Exit(1)
 	}
 
-	log.Println("Starting Kitchen Service...")
+	logg.Info("Starting Kitchen Service...")
 	if err := application.Run(ctx); err != nil {
-		log.Fatalf("service shutdown failed: %v", err)
+		logg.Error("service shutdown failed", slog.Any("error", err))
+		os.Exit(1)
 	}
 }

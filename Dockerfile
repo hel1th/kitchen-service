@@ -29,3 +29,12 @@ USER appuser
 COPY --from=builder /bin/restaurant-simulator /app/restaurant-simulator
 EXPOSE 8081
 ENTRYPOINT ["/app/restaurant-simulator"]
+
+FROM golang:1.27.1-alpine AS goose-builder
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
+FROM alpine:3.20 AS migrations
+WORKDIR /app
+COPY --from=goose-builder /go/bin/goose /bin/goose
+COPY migrations/ ./migrations/
+ENTRYPOINT ["/bin/goose", "-dir", "./migrations"]

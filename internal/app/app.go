@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -29,12 +29,13 @@ import (
 )
 
 type App struct {
-	cfg  *config.Config
-	pool *pgxpool.Pool
-	srv  *http.Server
+	cfg    *config.Config
+	pool   *pgxpool.Pool
+	srv    *http.Server
+	logger *slog.Logger
 }
 
-func New(ctx context.Context, cfg *config.Config) (*App, error) {
+func New(ctx context.Context, cfg *config.Config, logger *slog.Logger) (*App, error) {
 	pool, err := database.NewPool(ctx, cfg.Postgres.DSN())
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -77,14 +78,18 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 	gen.HandlerFromMuxWithBaseURL(server, r, "/api/v1")
 
 	srv := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port),
-		Handler: r,
+		Addr:         fmt.Sprintf("%s:%s", cfg.HTTP.Host, cfg.HTTP.Port),
+		Handler:      r,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  60 * time.Second,
 	}
 
 	return &App{
-		cfg:  cfg,
-		pool: pool,
-		srv:  srv,
+		cfg:    cfg,
+		pool:   pool,
+		srv:    srv,
+		logger: logger,
 	}, nil
 }
 
@@ -92,19 +97,19 @@ func (a *App) Run(ctx context.Context) error {
 	defer a.pool.Close()
 
 	go func() {
-		log.Printf("Listening on %s", a.srv.Addr)
+		a.logger.Info("Listening on", slog.String("addr", a.srv.Addr))
 		if err := a.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen error: %v", err)
+			a.logger.Error("listen error", slog.Any("error", err))
 		}
 	}()
 
 	<-ctx.Done()
-	log.Println("Shutting down Kitchen Service gracefully...")
+	a.logger.Info("Shutting down Kitchen Service gracefully...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := a.srv.Shutdown(shutdownCtx); err != nil {
+	if err := a.srv.Shutdown(shutdownCtx); err != nil { //nolint:contextcheck // graceful shutdown uses its own context
 		return fmt.Errorf("server shutdown failed: %w", err)
 	}
 

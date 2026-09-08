@@ -45,6 +45,7 @@ type TestEnv struct {
 }
 
 func SetupE2E(t *testing.T) *TestEnv {
+	t.Helper()
 	ctx := context.Background()
 
 	dbName := "kitchen_db"
@@ -64,7 +65,7 @@ func SetupE2E(t *testing.T) *TestEnv {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		if err := postgresContainer.Terminate(ctx); err != nil {
+		if termErr := postgresContainer.Terminate(ctx); termErr != nil {
 			log.Fatalf("failed to terminate container: %s", err)
 		}
 	})
@@ -77,11 +78,11 @@ func SetupE2E(t *testing.T) *TestEnv {
 	require.NoError(t, err)
 	defer db.Close()
 
-	if err := goose.SetDialect("postgres"); err != nil {
+	if gooseErr := goose.SetDialect("postgres"); gooseErr != nil {
 		t.Fatalf("goose: failed to set dialect: %v", err)
 	}
 
-	if err := goose.Up(db, "../../migrations"); err != nil {
+	if gooseErr := goose.Up(db, "../../migrations"); gooseErr != nil {
 		t.Fatalf("goose: failed to run migrations: %v", err)
 	}
 
@@ -147,12 +148,14 @@ func MakeRequest(
 	userID int64,
 	body []byte,
 ) *http.Response {
+	t.Helper()
+
 	var bodyReader io.Reader
 	if body != nil {
 		bodyReader = bytes.NewReader(body)
 	}
 
-	req, err := http.NewRequest(method, ts.URL+"/api/v1"+path, bodyReader)
+	req, err := http.NewRequestWithContext(context.Background(), method, ts.URL+"/api/v1"+path, bodyReader)
 	require.NoError(t, err)
 
 	if userID > 0 {

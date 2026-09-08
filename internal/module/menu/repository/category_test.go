@@ -106,7 +106,7 @@ func TestCategoryRepo_GetByIDAndRestaurantID(t *testing.T) {
 	restaurantID := uuid.New()
 
 	t.Run("found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2"). //nolint:lll
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2").
 			WithArgs(catID, restaurantID).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "restaurant_id", "name", "sort_order"}).
@@ -121,7 +121,7 @@ func TestCategoryRepo_GetByIDAndRestaurantID(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2"). //nolint:lll
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2").
 			WithArgs(catID, restaurantID).
 			WillReturnError(pgx.ErrNoRows)
 
@@ -144,7 +144,7 @@ func TestCategoryRepo_ListByRestaurantID(t *testing.T) {
 	cat2 := uuid.New()
 
 	t.Run("multiple rows", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC"). //nolint:lll
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC").
 			WithArgs(restaurantID).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "restaurant_id", "name", "sort_order"}).
@@ -160,7 +160,7 @@ func TestCategoryRepo_ListByRestaurantID(t *testing.T) {
 	})
 
 	t.Run("empty", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC"). //nolint:lll
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC").
 			WithArgs(restaurantID).
 			WillReturnRows(pgxmock.NewRows([]string{"id", "restaurant_id", "name", "sort_order"}))
 

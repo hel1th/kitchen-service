@@ -23,22 +23,24 @@ func NewCartRepo(db database.DBTX) *CartRepo {
 	return &CartRepo{db: db}
 }
 
+const resetQ = "UPDATE carts SET restaurant_id = NULL WHERE id = $1"
+
 func (r *CartRepo) GetByUserID(ctx context.Context, userID int64) (*domain.Cart, error) {
 	query := `SELECT id, user_id, restaurant_id FROM carts WHERE user_id = $1`
 
 	var cart domain.Cart
 	err := r.db.QueryRow(ctx, query, userID).Scan(&cart.ID, &cart.UserID, &cart.RestaurantID)
-	if err != nil { //nolint:nestif
-		if errors.Is(err, pgx.ErrNoRows) {
-			cart.ID = uuid.New()
-			cart.UserID = userID
-			insertQ := `INSERT INTO carts (id, user_id) VALUES ($1, $2)`
-			_, err = r.db.Exec(ctx, insertQ, cart.ID, cart.UserID)
-			if err != nil {
-				return nil, fmt.Errorf("create cart: %w", err)
-			}
-		} else {
-			return nil, fmt.Errorf("get cart by user id: %w", err)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("get cart by user id: %w", err)
+	}
+
+	if errors.Is(err, pgx.ErrNoRows) {
+		cart.ID = uuid.New()
+		cart.UserID = userID
+		insertQ := `INSERT INTO carts (id, user_id) VALUES ($1, $2)`
+		_, err = r.db.Exec(ctx, insertQ, cart.ID, cart.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("create cart: %w", err)
 		}
 	}
 
@@ -100,7 +102,6 @@ func (r *CartRepo) RemoveItem(ctx context.Context, cartID, itemID uuid.UUID) err
 	checkQ := `SELECT COUNT(*) FROM cart_items WHERE cart_id = $1`
 	var count int
 	if err := r.db.QueryRow(ctx, checkQ, cartID).Scan(&count); err == nil && count == 0 {
-		resetQ := `UPDATE carts SET restaurant_id = NULL WHERE id = $1`
 		_, _ = r.db.Exec(ctx, resetQ, cartID)
 	}
 
@@ -125,7 +126,6 @@ func (r *CartRepo) Clear(ctx context.Context, cartID uuid.UUID) error {
 		return fmt.Errorf("clear cart items: %w", err)
 	}
 
-	resetQ := `UPDATE carts SET restaurant_id = NULL WHERE id = $1`
 	if _, err := r.db.Exec(ctx, resetQ, cartID); err != nil {
 		return fmt.Errorf("reset cart restaurant: %w", err)
 	}

@@ -183,7 +183,7 @@ func TestRestaurantRepo_List(t *testing.T) {
 			WithArgs(&statusStr).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(1))
 
-		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at FROM restaurants WHERE \\(\\$1::text IS NULL OR status = \\$1\\) ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3"). //nolint:lll
+		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at FROM restaurants WHERE \\(\\$1::text IS NULL OR status = \\$1\\) ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3").
 			WithArgs(&statusStr, 10, 0).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "name", "status", "webhook_url", "created_at"}).
@@ -207,7 +207,10 @@ func TestRestaurantRepo_List(t *testing.T) {
 			WithArgs((*string)(nil)).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(2))
 
-		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at FROM restaurants WHERE \\(\\$1::text IS NULL OR status = \\$1\\) ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3"). //nolint:lll
+		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at"+
+			" FROM restaurants"+
+			" WHERE \\(\\$1::text IS NULL OR status = \\$1\\) "+
+			" ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3").
 			WithArgs((*string)(nil), 20, 0).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "name", "status", "webhook_url", "created_at"}).

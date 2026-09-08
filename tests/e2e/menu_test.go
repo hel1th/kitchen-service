@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hel1th/kitchen-service/internal/api/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hel1th/kitchen-service/internal/api/gen"
 )
 
 func TestMenuAPI(t *testing.T) {
@@ -56,7 +57,11 @@ func TestMenuAPI(t *testing.T) {
 		assert.Equal(t, "Desserts", *category.Name)
 
 		// DELETE the category
-		respDel := MakeRequest(t, env.Server, http.MethodDelete, "/restaurants/"+restID+"/categories/"+category.Id.String(), 0, nil)
+		respDel := MakeRequest(
+			t, env.Server, http.MethodDelete,
+			"/restaurants/"+restID+"/categories/"+category.Id.String(),
+			0, nil,
+		)
 		require.Equal(t, http.StatusNoContent, respDel.StatusCode)
 		respDel.Body.Close()
 	})
@@ -95,17 +100,29 @@ func TestMenuAPI(t *testing.T) {
 		// 3. Patch dish availability
 		availPayload := map[string]bool{"available": false}
 		availBytes, _ := json.Marshal(availPayload)
-		respAvail := MakeRequest(t, env.Server, http.MethodPatch, "/restaurants/"+restID+"/dishes/"+dish.Id.String()+"/availability", 0, availBytes)
+		respAvail := MakeRequest(
+			t, env.Server, http.MethodPatch,
+			"/restaurants/"+restID+"/dishes/"+dish.Id.String()+"/availability",
+			0, availBytes,
+		)
 		require.Equal(t, http.StatusOK, respAvail.StatusCode)
 		respAvail.Body.Close()
 
 		// 4. Delete dish (soft delete)
-		respDel := MakeRequest(t, env.Server, http.MethodDelete, "/restaurants/"+restID+"/dishes/"+dish.Id.String(), 0, nil)
+		respDel := MakeRequest(
+			t, env.Server, http.MethodDelete,
+			"/restaurants/"+restID+"/dishes/"+dish.Id.String(),
+			0, nil,
+		)
 		require.Equal(t, http.StatusNoContent, respDel.StatusCode)
 		respDel.Body.Close()
 
 		// 5. Restore dish
-		respRestore := MakeRequest(t, env.Server, http.MethodPost, "/restaurants/"+restID+"/dishes/"+dish.Id.String()+"/restore", 0, nil)
+		respRestore := MakeRequest(
+			t, env.Server, http.MethodPost,
+			"/restaurants/"+restID+"/dishes/"+dish.Id.String()+"/restore",
+			0, nil,
+		)
 		require.Equal(t, http.StatusOK, respRestore.StatusCode)
 		respRestore.Body.Close()
 	})

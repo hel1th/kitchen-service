@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/hel1th/kitchen-service/internal/api/gen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/hel1th/kitchen-service/internal/api/gen"
 )
 
 func TestOrdersAPI(t *testing.T) {
@@ -41,7 +42,7 @@ func TestOrdersAPI(t *testing.T) {
 
 		assert.Equal(t, gen.Created, *order.Status)
 		assert.NotNil(t, order.Id)
-		
+
 		// Verify cart is cleared
 		respCart := MakeRequest(t, env.Server, http.MethodGet, "/cart", userID, nil)
 		cartBody, _ := io.ReadAll(respCart.Body)
@@ -80,7 +81,7 @@ func TestOrdersAPI(t *testing.T) {
 		statusBytes, _ := json.Marshal(statusPayload)
 		respPatch := MakeRequest(t, env.Server, http.MethodPatch, "/orders/"+orderID+"/status", 0, statusBytes)
 		require.Equal(t, http.StatusOK, respPatch.StatusCode)
-		
+
 		patchBody, _ := io.ReadAll(respPatch.Body)
 		respPatch.Body.Close()
 		var updatedOrder gen.Order

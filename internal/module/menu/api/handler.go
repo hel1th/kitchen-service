@@ -27,49 +27,36 @@ func NewMenuHandler(dishUC *usecase.DishUsecase, categoryUC *usecase.CategoryUse
 func (h *MenuHandler) GetRestaurantMenu(
 	w http.ResponseWriter,
 	r *http.Request,
-	restaurantId gen.RestaurantId,
+	restaurantID gen.RestaurantId,
 ) {
-	menu, err := h.dishUC.GetMenu(r.Context(), restaurantId)
+	menu, err := h.dishUC.GetMenu(r.Context(), restaurantID)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
 	}
 
-	res := make(gen.GetRestaurantMenu200JSONResponse, 0)
-	for _, c := range menu {
-		dishes := make([]gen.Dish, 0, len(c.Dishes))
-		for _, d := range c.Dishes {
-			id := d.ID
-			cid := d.CategoryID
-			name := d.Name
-			desc := d.Description
-			price := float32(d.Price)
-			available := d.Available
-
-			dish := gen.Dish{
-				Id:          &id,
-				CategoryId:  &cid,
-				Name:        &name,
-				Description: &desc,
+	res := make(gen.GetRestaurantMenu200JSONResponse, 0, len(menu))
+	for i := range menu {
+		c := &menu[i]
+		dishes := make([]gen.Dish, len(c.Dishes))
+		for j := range c.Dishes {
+			price := float32(c.Dishes[j].Price)
+			dishes[j] = gen.Dish{
+				Id:          &c.Dishes[j].ID,
+				CategoryId:  &c.Dishes[j].CategoryID,
+				Name:        &c.Dishes[j].Name,
+				Description: &c.Dishes[j].Description,
 				Price:       &price,
-				Available:   &available,
+				Available:   &c.Dishes[j].Available,
+				DeletedAt:   c.Dishes[j].DeletedAt,
 			}
-			if d.DeletedAt != nil {
-				dish.DeletedAt = d.DeletedAt
-			}
-			dishes = append(dishes, dish)
 		}
 
-		cid := c.Category.ID
-		rid := c.Category.RestaurantID
-		cname := c.Category.Name
-		sortOrder := c.Category.SortOrder
-
 		res = append(res, gen.CategoryWithDishes{
-			Id:           &cid,
-			RestaurantId: &rid,
-			Name:         &cname,
-			SortOrder:    &sortOrder,
+			Id:           &c.Category.ID,
+			RestaurantId: &c.Category.RestaurantID,
+			Name:         &c.Category.Name,
+			SortOrder:    &c.Category.SortOrder,
 			Dishes:       &dishes,
 		})
 	}
@@ -79,7 +66,7 @@ func (h *MenuHandler) GetRestaurantMenu(
 }
 
 // CreateCategory Создать категорию в меню
-func (h *MenuHandler) CreateCategory(w http.ResponseWriter, r *http.Request, restaurantId gen.RestaurantId) {
+func (h *MenuHandler) CreateCategory(w http.ResponseWriter, r *http.Request, restaurantID gen.RestaurantId) {
 	var req gen.CreateCategoryJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httperr.HandleError(w, err)
@@ -90,7 +77,7 @@ func (h *MenuHandler) CreateCategory(w http.ResponseWriter, r *http.Request, res
 	if req.SortOrder != nil {
 		sortOrder = *req.SortOrder
 	}
-	cat, err := h.categoryUC.AddCategory(r.Context(), restaurantId, req.Name, sortOrder)
+	cat, err := h.categoryUC.AddCategory(r.Context(), restaurantID, req.Name, sortOrder)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
@@ -115,10 +102,10 @@ func (h *MenuHandler) CreateCategory(w http.ResponseWriter, r *http.Request, res
 func (h *MenuHandler) DeleteCategory(
 	w http.ResponseWriter,
 	r *http.Request,
-	restaurantId gen.RestaurantId,
+	restaurantID gen.RestaurantId,
 	categoryID openapiTypes.UUID,
 ) {
-	err := h.categoryUC.DeleteCategory(r.Context(), restaurantId, categoryID)
+	err := h.categoryUC.DeleteCategory(r.Context(), restaurantID, categoryID)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
@@ -127,7 +114,7 @@ func (h *MenuHandler) DeleteCategory(
 }
 
 // CreateDish Добавить блюдо
-func (h *MenuHandler) CreateDish(w http.ResponseWriter, r *http.Request, restaurantId gen.RestaurantId) {
+func (h *MenuHandler) CreateDish(w http.ResponseWriter, r *http.Request, restaurantID gen.RestaurantId) {
 	var req gen.CreateDishJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httperr.HandleError(w, err)
@@ -138,10 +125,9 @@ func (h *MenuHandler) CreateDish(w http.ResponseWriter, r *http.Request, restaur
 	if req.Description != nil {
 		desc = *req.Description
 	}
-	// Missing Available field in DishInput. Defaulting to false or true? Usually a new dish might be available or not, but domain defaults to whatever we pass. Let's pass true. //nolint:lll
 	dish, err := h.dishUC.AddDish(
 		r.Context(),
-		restaurantId,
+		restaurantID,
 		req.CategoryId,
 		req.Name,
 		desc,
@@ -176,10 +162,10 @@ func (h *MenuHandler) CreateDish(w http.ResponseWriter, r *http.Request, restaur
 func (h *MenuHandler) DeleteDish(
 	w http.ResponseWriter,
 	r *http.Request,
-	restaurantId gen.RestaurantId,
-	dishId gen.DishId,
+	restaurantID gen.RestaurantId,
+	dishID gen.DishId,
 ) {
-	err := h.dishUC.DeleteDish(r.Context(), restaurantId, dishId)
+	err := h.dishUC.DeleteDish(r.Context(), restaurantID, dishID)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
@@ -191,8 +177,8 @@ func (h *MenuHandler) DeleteDish(
 func (h *MenuHandler) UpdateDish(
 	w http.ResponseWriter,
 	r *http.Request,
-	restaurantId gen.RestaurantId,
-	dishId gen.DishId,
+	restaurantID gen.RestaurantId,
+	dishID gen.DishId,
 ) {
 	var req gen.UpdateDishJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -210,7 +196,7 @@ func (h *MenuHandler) UpdateDish(
 		params.Price = &p
 	}
 
-	dish, err := h.dishUC.PatchDish(r.Context(), restaurantId, dishId, params)
+	dish, err := h.dishUC.PatchDish(r.Context(), restaurantID, dishID, params)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
@@ -238,8 +224,8 @@ func (h *MenuHandler) UpdateDish(
 func (h *MenuHandler) SetDishAvailability(
 	w http.ResponseWriter,
 	r *http.Request,
-	restaurantId gen.RestaurantId,
-	dishId gen.DishId,
+	restaurantD gen.RestaurantId,
+	dishID gen.DishId,
 ) {
 	var req gen.SetDishAvailabilityJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -247,7 +233,7 @@ func (h *MenuHandler) SetDishAvailability(
 		return
 	}
 
-	dish, err := h.dishUC.SetAvailability(r.Context(), restaurantId, dishId, req.Available)
+	dish, err := h.dishUC.SetAvailability(r.Context(), restaurantD, dishID, req.Available)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
@@ -275,17 +261,17 @@ func (h *MenuHandler) SetDishAvailability(
 func (h *MenuHandler) RestoreDish(
 	w http.ResponseWriter,
 	r *http.Request,
-	restaurantId gen.RestaurantId,
-	dishId gen.DishId,
+	restaurantID gen.RestaurantId,
+	dishID gen.DishId,
 ) {
-	dish, err := h.dishUC.RestoreDish(r.Context(), restaurantId, dishId)
+	dish, err := h.dishUC.RestoreDish(r.Context(), restaurantID, dishID)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
 	}
 
 	id := dish.ID
-	cid := dish.CategoryID
+	cID := dish.CategoryID
 	name := dish.Name
 	desc := dish.Description
 	price := float32(dish.Price)
@@ -294,7 +280,7 @@ func (h *MenuHandler) RestoreDish(
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(gen.Dish{
 		Id:          &id,
-		CategoryId:  &cid,
+		CategoryId:  &cID,
 		Name:        &name,
 		Description: &desc,
 		Price:       &price,

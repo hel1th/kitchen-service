@@ -23,12 +23,12 @@ type HTTPConfig struct {
 }
 
 type PostgresConfig struct {
-	User     string `env:"USER"     env-required:"true"`
-	Password string `env:"PASSWORD" env-required:"true"`
-	Host     string `env:"HOST"     env-default:"localhost"`
-	Port     string `env:"PORT"     env-default:"5432"`
-	DB       string `env:"DB"       env-required:"true"`
-	SSLMode  string `env:"SSLMODE"  env-default:"disable"`
+	User     string `env:"USER"                         env-required:"true"`
+	Password string `env:"PASSWORD"                     env-required:"true"`
+	Host     string `env:"HOST"                         env-default:"localhost"`
+	Port     string `env:"PORT"                         env-default:"5432"`
+	DB       string `env:"DB"                           env-required:"true"`
+	SSLMode  string `env:"SSLMODE"                      env-default:"disable"`
 }
 
 // DSN returns a connection string for PostgreSQL based on config

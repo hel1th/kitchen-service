@@ -73,10 +73,10 @@ func (h *OrderHandler) AddCartItem(w http.ResponseWriter, r *http.Request, param
 func (h *OrderHandler) RemoveCartItem(
 	w http.ResponseWriter,
 	r *http.Request,
-	itemId openapiTypes.UUID,
+	itemID openapiTypes.UUID,
 	params gen.RemoveCartItemParams,
 ) {
-	if err := h.orderUC.RemoveFromCart(r.Context(), params.XUserId, itemId); err != nil {
+	if err := h.orderUC.RemoveFromCart(r.Context(), params.XUserId, itemID); err != nil {
 		httperr.HandleError(w, err)
 		return
 	}
@@ -88,7 +88,7 @@ func (h *OrderHandler) RemoveCartItem(
 func (h *OrderHandler) UpdateCartItem(
 	w http.ResponseWriter,
 	r *http.Request,
-	itemId openapiTypes.UUID,
+	itemID openapiTypes.UUID,
 	params gen.UpdateCartItemParams,
 ) {
 	var req gen.UpdateCartItemJSONRequestBody
@@ -97,7 +97,7 @@ func (h *OrderHandler) UpdateCartItem(
 		return
 	}
 
-	if err := h.orderUC.UpdateCartItemQuantity(r.Context(), params.XUserId, itemId, req.Quantity); err != nil {
+	if err := h.orderUC.UpdateCartItemQuantity(r.Context(), params.XUserId, itemID, req.Quantity); err != nil {
 		httperr.HandleError(w, err)
 		return
 	}
@@ -154,7 +154,7 @@ func (h *OrderHandler) GetOrder(
 	w http.ResponseWriter,
 	r *http.Request,
 	orderID gen.OrderId,
-	params gen.GetOrderParams,
+	_ gen.GetOrderParams,
 ) {
 	order, err := h.orderUC.GetOrder(r.Context(), orderID)
 	if err != nil {
@@ -191,7 +191,7 @@ func (h *OrderHandler) UpdateOrderStatus(w http.ResponseWriter, r *http.Request,
 func (h *OrderHandler) ListRestaurantOrders(
 	w http.ResponseWriter,
 	r *http.Request,
-	restaurantId gen.RestaurantId,
+	restaurantID gen.RestaurantId,
 	params gen.ListRestaurantOrdersParams,
 ) {
 	var status *domain.OrderStatus
@@ -200,7 +200,7 @@ func (h *OrderHandler) ListRestaurantOrders(
 		status = &s
 	}
 
-	orders, err := h.orderUC.ListRestaurantOrders(r.Context(), restaurantId, status)
+	orders, err := h.orderUC.ListRestaurantOrders(r.Context(), restaurantID, status)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
@@ -232,7 +232,7 @@ func mapCart(cd *usecase.CartWithDetails) gen.Cart {
 	items := make([]gen.CartItem, 0, len(cd.Items))
 	for _, item := range cd.Items {
 		id := item.Item.ID
-		dishId := item.Item.DishID
+		dishID := item.Item.DishID
 		quantity := item.Item.Quantity
 		name := item.DishName
 		price := float32(item.Price)
@@ -240,7 +240,7 @@ func mapCart(cd *usecase.CartWithDetails) gen.Cart {
 
 		items = append(items, gen.CartItem{
 			Id:        &id,
-			DishId:    &dishId,
+			DishId:    &dishID,
 			Quantity:  &quantity,
 			DishName:  &name,
 			Price:     &price,
@@ -265,13 +265,13 @@ func mapCart(cd *usecase.CartWithDetails) gen.Cart {
 func mapOrder(o *domain.Order) gen.Order {
 	items := make([]gen.OrderItem, 0, len(o.Items))
 	for _, item := range o.Items {
-		dishId := item.DishID
+		dishID := item.DishID
 		name := item.DishNameSnapshot
 		price := float32(item.PriceSnapshot)
 		quantity := item.Quantity
 
 		items = append(items, gen.OrderItem{
-			DishId:        &dishId,
+			DishId:        &dishID,
 			DishName:      &name,
 			PriceSnapshot: &price,
 			Quantity:      &quantity,

@@ -21,7 +21,7 @@ func NewRestaurantHandler(restUC *usecase.RestaurantUsecase) *RestaurantHandler 
 }
 
 // GetHealthz Healthcheck
-func (h *RestaurantHandler) GetHealthz(w http.ResponseWriter, r *http.Request) {
+func (h *RestaurantHandler) GetHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte(`{"status": "ok"}`))
 }
@@ -75,8 +75,8 @@ func (h *RestaurantHandler) ListRestaurants(w http.ResponseWriter, r *http.Reque
 }
 
 // GetRestaurant Получить инфу о ресторане
-func (h *RestaurantHandler) GetRestaurant(w http.ResponseWriter, r *http.Request, restaurantId gen.RestaurantId) {
-	rest, err := h.restUC.Get(r.Context(), restaurantId)
+func (h *RestaurantHandler) GetRestaurant(w http.ResponseWriter, r *http.Request, restaurantID gen.RestaurantId) {
+	rest, err := h.restUC.Get(r.Context(), restaurantID)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
@@ -97,7 +97,7 @@ func (h *RestaurantHandler) GetRestaurant(w http.ResponseWriter, r *http.Request
 }
 
 // SetRestaurantStatus Изменить статус ресторана (открыт/закрыт)
-func (h *RestaurantHandler) SetRestaurantStatus(w http.ResponseWriter, r *http.Request, restaurantId gen.RestaurantId) {
+func (h *RestaurantHandler) SetRestaurantStatus(w http.ResponseWriter, r *http.Request, restaurantID gen.RestaurantId) {
 	var req gen.SetRestaurantStatusJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		httperr.HandleError(w, err)
@@ -105,7 +105,7 @@ func (h *RestaurantHandler) SetRestaurantStatus(w http.ResponseWriter, r *http.R
 	}
 
 	status := domain.RestaurantStatus(req.Status)
-	rest, err := h.restUC.SetStatus(r.Context(), restaurantId, status)
+	rest, err := h.restUC.SetStatus(r.Context(), restaurantID, status)
 	if err != nil {
 		httperr.HandleError(w, err)
 		return
