@@ -85,7 +85,7 @@ func TestOrder_TotalAmount_EmptyItems(t *testing.T) {
 		Items:  []domain.OrderItem{},
 	}
 
-	assert.Equal(t, 0.0, order.TotalAmount())
+	assert.InDelta(t, 0.0, order.TotalAmount(), 0.0001)
 }
 
 func TestOrder_TransitionTo(t *testing.T) {

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
 	"github.com/hel1th/kitchen-service/internal/module/restaurant/domain"
 )
 
@@ -30,7 +31,11 @@ func (f *FakeRestaurantRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain
 	return r, nil
 }
 
-func (f *FakeRestaurantRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status domain.RestaurantStatus) (*domain.Restaurant, error) {
+func (f *FakeRestaurantRepo) UpdateStatus(
+	ctx context.Context,
+	id uuid.UUID,
+	status domain.RestaurantStatus,
+) (*domain.Restaurant, error) {
 	r, ok := f.Restaurants[id]
 	if !ok {
 		return nil, domain.ErrRestaurantNotFound
@@ -49,7 +54,7 @@ func (f *FakeRestaurantRepo) List(ctx context.Context, filter ListFilter) ([]dom
 	}
 
 	total := len(list)
-	
+
 	// Apply offset
 	if filter.Offset > len(list) {
 		list = nil

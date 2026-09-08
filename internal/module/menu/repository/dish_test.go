@@ -44,7 +44,7 @@ func TestDishRepo_Create(t *testing.T) {
 		mock.ExpectQuery("INSERT INTO dishes").
 			WithArgs(dishID, restaurantID, categoryID, "Burger", "Juicy beef burger", 499.00, true, (*time.Time)(nil), now, now).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dishID, restaurantID, categoryID, "Burger", "Juicy beef burger", 499.00, true, nil, now, now),
 			)
 
@@ -61,7 +61,7 @@ func TestDishRepo_Create(t *testing.T) {
 			WillReturnError(&pgconn.PgError{Code: "23503"})
 
 		created, err := repo.Create(ctx, dish)
-		assert.ErrorIs(t, err, domain.ErrCategoryNotFound)
+		require.ErrorIs(t, err, domain.ErrCategoryNotFound)
 		assert.Nil(t, created)
 	})
 }
@@ -80,10 +80,10 @@ func TestDishRepo_GetByID(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1"). //nolint:lll
 			WithArgs(dishID).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dishID, restaurantID, categoryID, "Pizza", "Cheese pizza", 550.00, true, nil, now, now),
 			)
 
@@ -94,12 +94,12 @@ func TestDishRepo_GetByID(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1"). //nolint:lll
 			WithArgs(dishID).
 			WillReturnError(pgx.ErrNoRows)
 
 		dish, err := repo.GetByID(ctx, dishID)
-		assert.ErrorIs(t, err, domain.ErrDishNotFound)
+		require.ErrorIs(t, err, domain.ErrDishNotFound)
 		assert.Nil(t, dish)
 	})
 }
@@ -118,10 +118,10 @@ func TestDishRepo_GetByIDAndRestaurantID(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1 AND restaurant_id = \\$2").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1 AND restaurant_id = \\$2"). //nolint:lll
 			WithArgs(dishID, restaurantID).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dishID, restaurantID, categoryID, "Pizza", "Cheese pizza", 550.00, true, nil, now, now),
 			)
 
@@ -132,12 +132,12 @@ func TestDishRepo_GetByIDAndRestaurantID(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1 AND restaurant_id = \\$2").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = \\$1 AND restaurant_id = \\$2"). //nolint:lll
 			WithArgs(dishID, restaurantID).
 			WillReturnError(pgx.ErrNoRows)
 
 		dish, err := repo.GetByIDAndRestaurantID(ctx, dishID, restaurantID)
-		assert.ErrorIs(t, err, domain.ErrDishNotFound)
+		require.ErrorIs(t, err, domain.ErrDishNotFound)
 		assert.Nil(t, dish)
 	})
 }
@@ -168,25 +168,25 @@ func TestDishRepo_Update(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		mock.ExpectQuery("UPDATE dishes").
-			WithArgs(dishID, categoryID, "Updated Pizza", "Double cheese pizza", 650.00, true, (*time.Time)(nil), now, restaurantID).
+			WithArgs(dishID, categoryID, "Updated Pizza", "Double cheese pizza", 650.00, true, (*time.Time)(nil), now, restaurantID). //nolint:lll
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dishID, restaurantID, categoryID, "Updated Pizza", "Double cheese pizza", 650.00, true, nil, now, now),
 			)
 
 		updated, err := repo.Update(ctx, dish)
 		require.NoError(t, err)
 		assert.Equal(t, "Updated Pizza", updated.Name)
-		assert.Equal(t, 650.00, updated.Price)
+		assert.InEpsilon(t, 650.00, updated.Price, 0.0001)
 	})
 
 	t.Run("not found", func(t *testing.T) {
 		mock.ExpectQuery("UPDATE dishes").
-			WithArgs(dishID, categoryID, "Updated Pizza", "Double cheese pizza", 650.00, true, (*time.Time)(nil), now, restaurantID).
+			WithArgs(dishID, categoryID, "Updated Pizza", "Double cheese pizza", 650.00, true, (*time.Time)(nil), now, restaurantID). //nolint:lll
 			WillReturnError(pgx.ErrNoRows)
 
 		updated, err := repo.Update(ctx, dish)
-		assert.ErrorIs(t, err, domain.ErrDishNotFound)
+		require.ErrorIs(t, err, domain.ErrDishNotFound)
 		assert.Nil(t, updated)
 	})
 }
@@ -204,7 +204,7 @@ func TestDishRepo_SoftDelete(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("success", func(t *testing.T) {
-		mock.ExpectExec("UPDATE dishes SET deleted_at = \\$3, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL").
+		mock.ExpectExec("UPDATE dishes SET deleted_at = \\$3, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL"). //nolint:lll
 			WithArgs(dishID, restaurantID, now).
 			WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 
@@ -213,7 +213,7 @@ func TestDishRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("already deleted", func(t *testing.T) {
-		mock.ExpectExec("UPDATE dishes SET deleted_at = \\$3, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL").
+		mock.ExpectExec("UPDATE dishes SET deleted_at = \\$3, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL"). //nolint:lll
 			WithArgs(dishID, restaurantID, now).
 			WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 
@@ -226,7 +226,7 @@ func TestDishRepo_SoftDelete(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		mock.ExpectExec("UPDATE dishes SET deleted_at = \\$3, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL").
+		mock.ExpectExec("UPDATE dishes SET deleted_at = \\$3, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL"). //nolint:lll
 			WithArgs(dishID, restaurantID, now).
 			WillReturnResult(pgxmock.NewResult("UPDATE", 0))
 
@@ -253,10 +253,10 @@ func TestDishRepo_Restore(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("success", func(t *testing.T) {
-		mock.ExpectQuery("UPDATE dishes SET deleted_at = NULL, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NOT NULL").
+		mock.ExpectQuery("UPDATE dishes SET deleted_at = NULL, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NOT NULL"). //nolint:lll
 			WithArgs(dishID, restaurantID, now).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dishID, restaurantID, categoryID, "Soup", "Hot tomato soup", 300.00, true, nil, now, now),
 			)
 
@@ -267,7 +267,7 @@ func TestDishRepo_Restore(t *testing.T) {
 	})
 
 	t.Run("dish not deleted", func(t *testing.T) {
-		mock.ExpectQuery("UPDATE dishes SET deleted_at = NULL, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NOT NULL").
+		mock.ExpectQuery("UPDATE dishes SET deleted_at = NULL, updated_at = \\$3 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NOT NULL"). //nolint:lll
 			WithArgs(dishID, restaurantID, now).
 			WillReturnError(pgx.ErrNoRows)
 
@@ -276,7 +276,7 @@ func TestDishRepo_Restore(t *testing.T) {
 			WillReturnRows(pgxmock.NewRows([]string{"deleted_at"}).AddRow(nil))
 
 		restored, err := repo.Restore(ctx, restaurantID, dishID, now)
-		assert.ErrorIs(t, err, domain.ErrDishNotDeleted)
+		require.ErrorIs(t, err, domain.ErrDishNotDeleted)
 		assert.Nil(t, restored)
 	})
 }
@@ -295,10 +295,10 @@ func TestDishRepo_SetAvailability(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("success", func(t *testing.T) {
-		mock.ExpectQuery("UPDATE dishes SET available = \\$3, updated_at = \\$4 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL").
+		mock.ExpectQuery("UPDATE dishes SET available = \\$3, updated_at = \\$4 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL"). //nolint:lll
 			WithArgs(dishID, restaurantID, false, now).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dishID, restaurantID, categoryID, "Soup", "Hot tomato soup", 300.00, false, nil, now, now),
 			)
 
@@ -308,12 +308,12 @@ func TestDishRepo_SetAvailability(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		mock.ExpectQuery("UPDATE dishes SET available = \\$3, updated_at = \\$4 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL").
+		mock.ExpectQuery("UPDATE dishes SET available = \\$3, updated_at = \\$4 WHERE id = \\$1 AND restaurant_id = \\$2 AND deleted_at IS NULL"). //nolint:lll
 			WithArgs(dishID, restaurantID, true, now).
 			WillReturnError(pgx.ErrNoRows)
 
 		updated, err := repo.SetAvailability(ctx, restaurantID, dishID, true, now)
-		assert.ErrorIs(t, err, domain.ErrDishNotFound)
+		require.ErrorIs(t, err, domain.ErrDishNotFound)
 		assert.Nil(t, updated)
 	})
 }
@@ -333,10 +333,10 @@ func TestDishRepo_ListByRestaurantID(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("active only", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE restaurant_id = \\$1 AND deleted_at IS NULL ORDER BY created_at ASC, name ASC").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE restaurant_id = \\$1 AND deleted_at IS NULL ORDER BY created_at ASC, name ASC"). //nolint:lll
 			WithArgs(restaurantID).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dish1, restaurantID, catID, "Dish 1", "Desc 1", 100.00, true, nil, now, now),
 			)
 
@@ -347,10 +347,10 @@ func TestDishRepo_ListByRestaurantID(t *testing.T) {
 	})
 
 	t.Run("include deleted", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE restaurant_id = \\$1 ORDER BY created_at ASC, name ASC").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE restaurant_id = \\$1 ORDER BY created_at ASC, name ASC"). //nolint:lll
 			WithArgs(restaurantID).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dish1, restaurantID, catID, "Dish 1", "Desc 1", 100.00, true, nil, now, now).
 					AddRow(dish2, restaurantID, catID, "Dish 2", "Desc 2", 200.00, false, &now, now, now),
 			)
@@ -382,10 +382,10 @@ func TestDishRepo_GetByIDs(t *testing.T) {
 	})
 
 	t.Run("found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = ANY\\(\\$1\\)").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE id = ANY\\(\\$1\\)"). //nolint:lll
 			WithArgs([]uuid.UUID{dish1, dish2}).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dish1, restaurantID, catID, "Dish 1", "", 100.00, true, nil, now, now).
 					AddRow(dish2, restaurantID, catID, "Dish 2", "", 200.00, false, nil, now, now),
 			)
@@ -411,7 +411,7 @@ func TestDishRepo_GetMenuWithDishes(t *testing.T) {
 	now := time.Now().UTC()
 
 	t.Run("success", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC").
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC"). //nolint:lll
 			WithArgs(restaurantID).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "restaurant_id", "name", "sort_order"}).
@@ -419,10 +419,10 @@ func TestDishRepo_GetMenuWithDishes(t *testing.T) {
 					AddRow(cat2, restaurantID, "Desserts", 2),
 			)
 
-		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE restaurant_id = \\$1 AND deleted_at IS NULL ORDER BY created_at ASC, name ASC").
+		mock.ExpectQuery("SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at FROM dishes WHERE restaurant_id = \\$1 AND deleted_at IS NULL ORDER BY created_at ASC, name ASC"). //nolint:lll
 			WithArgs(restaurantID).
 			WillReturnRows(
-				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}).
+				pgxmock.NewRows([]string{"id", "restaurant_id", "category_id", "name", "description", "price", "available", "deleted_at", "created_at", "updated_at"}). //nolint:lll
 					AddRow(dish1, restaurantID, cat1, "Steak", "Ribeye steak", 1200.00, true, nil, now, now),
 			)
 

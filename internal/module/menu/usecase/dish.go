@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/hel1th/kitchen-service/internal/module/menu/domain"
 )
 
@@ -20,7 +21,17 @@ func NewDishUsecase(dishRepo DishRepository, categoryRepo CategoryRepository) *D
 	}
 }
 
-func (uc *DishUsecase) AddDish(ctx context.Context, restaurantID uuid.UUID, categoryID uuid.UUID, name string, description string, price float64, available bool) (*domain.Dish, error) {
+func (uc *DishUsecase) GetMenu(ctx context.Context, restaurantID uuid.UUID) ([]domain.CategoryWithDishes, error) {
+	return uc.dishRepo.GetMenuWithDishes(ctx, restaurantID)
+}
+
+func (uc *DishUsecase) AddDish(
+	ctx context.Context,
+	restaurantID, categoryID uuid.UUID,
+	name, description string,
+	price float64,
+	available bool,
+) (*domain.Dish, error) {
 	// 1. Check if category belongs to restaurant (returns ErrCategoryNotFound if not)
 	_, err := uc.categoryRepo.GetByIDAndRestaurantID(ctx, categoryID, restaurantID)
 	if err != nil {
@@ -50,10 +61,18 @@ type PatchDishParams struct {
 	Price       *float64
 }
 
-func (uc *DishUsecase) PatchDish(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID, params PatchDishParams) (*domain.Dish, error) {
+func (uc *DishUsecase) PatchDish(
+	ctx context.Context,
+	restaurantID, id uuid.UUID,
+	params PatchDishParams,
+) (*domain.Dish, error) {
 	dish, err := uc.dishRepo.GetByIDAndRestaurantID(ctx, id, restaurantID)
 	if err != nil {
 		return nil, err
+	}
+
+	if dish.IsDeleted() {
+		return nil, domain.ErrDishAlreadyDeleted
 	}
 
 	if params.CategoryID != nil && *params.CategoryID != dish.CategoryID {
@@ -78,20 +97,28 @@ func (uc *DishUsecase) PatchDish(ctx context.Context, restaurantID uuid.UUID, id
 	return uc.dishRepo.Update(ctx, dish)
 }
 
-func (uc *DishUsecase) DeleteDish(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID) error {
+func (uc *DishUsecase) DeleteDish(ctx context.Context, restaurantID, id uuid.UUID) error {
 	return uc.dishRepo.SoftDelete(ctx, restaurantID, id, time.Now().UTC())
 }
 
-func (uc *DishUsecase) RestoreDish(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID) (*domain.Dish, error) {
+func (uc *DishUsecase) RestoreDish(ctx context.Context, restaurantID, id uuid.UUID) (*domain.Dish, error) {
 	return uc.dishRepo.Restore(ctx, restaurantID, id, time.Now().UTC())
 }
 
-func (uc *DishUsecase) SetAvailability(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID, available bool) (*domain.Dish, error) {
+func (uc *DishUsecase) SetAvailability(
+	ctx context.Context,
+	restaurantID, id uuid.UUID,
+	available bool,
+) (*domain.Dish, error) {
 	return uc.dishRepo.SetAvailability(ctx, restaurantID, id, available, time.Now().UTC())
 }
 
 // CheckAvailability implements AvailabilityChecker
-func (uc *DishUsecase) CheckAvailability(ctx context.Context, restaurantID uuid.UUID, dishIDs []uuid.UUID) ([]UnavailableDish, error) {
+func (uc *DishUsecase) CheckAvailability(
+	ctx context.Context,
+	restaurantID uuid.UUID,
+	dishIDs []uuid.UUID,
+) ([]UnavailableDish, error) {
 	if len(dishIDs) == 0 {
 		return nil, nil
 	}

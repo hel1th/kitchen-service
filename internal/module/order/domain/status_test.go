@@ -53,7 +53,15 @@ func TestCanTransition_All16Combinations(t *testing.T) {
 
 			t.Run(string(fromStatus)+" -> "+string(toStatus), func(t *testing.T) {
 				actual := domain.CanTransition(fromStatus, toStatus)
-				assert.Equal(t, expected, actual, "Transition from %s to %s should be %v", fromStatus, toStatus, expected)
+				assert.Equal(
+					t,
+					expected,
+					actual,
+					"Transition from %s to %s should be %v",
+					fromStatus,
+					toStatus,
+					expected,
+				)
 			})
 		}
 	}

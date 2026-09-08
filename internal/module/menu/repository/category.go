@@ -83,7 +83,10 @@ func (r *CategoryRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Categ
 }
 
 // GetByIDAndRestaurantID retrieves a category by its ID and restaurant ID.
-func (r *CategoryRepo) GetByIDAndRestaurantID(ctx context.Context, id uuid.UUID, restaurantID uuid.UUID) (*domain.Category, error) {
+func (r *CategoryRepo) GetByIDAndRestaurantID(
+	ctx context.Context,
+	id, restaurantID uuid.UUID,
+) (*domain.Category, error) {
 	query := `
 		SELECT id, restaurant_id, name, sort_order
 		FROM categories
@@ -146,7 +149,7 @@ func (r *CategoryRepo) ListByRestaurantID(ctx context.Context, restaurantID uuid
 // Delete removes a category by ID and restaurant ID.
 // If the category has dependent dishes, Postgres returns foreign_key_violation (23503),
 // which is mapped to domain.ErrCategoryNotEmpty.
-func (r *CategoryRepo) Delete(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID) error {
+func (r *CategoryRepo) Delete(ctx context.Context, restaurantID, id uuid.UUID) error {
 	query := `
 		DELETE FROM categories
 		WHERE id = $1 AND restaurant_id = $2

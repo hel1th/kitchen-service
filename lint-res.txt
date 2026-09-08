@@ -1,0 +1,10 @@
+golangci-lint run ./...
+internal/module/restaurant/usecase/provider.go:1: : # github.com/hel1th/kitchen-service/internal/module/restaurant/usecase [github.com/hel1th/kitchen-service/internal/module/restaurant/usecase.test]
+internal/module/restaurant/usecase/restaurant_test.go:24:2: undefined: require
+internal/module/restaurant/usecase/restaurant_test.go:54:2: undefined: require
+internal/module/restaurant/usecase/restaurant_test.go:70:2: undefined: require
+internal/module/restaurant/usecase/restaurant_test.go:74:2: undefined: require
+internal/module/restaurant/usecase/restaurant_test.go:78:2: undefined: require (typecheck)
+package usecase
+1 issues:
+* typecheck: 1

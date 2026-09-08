@@ -53,7 +53,7 @@ func TestCategoryRepo_Create(t *testing.T) {
 			WillReturnError(pgx.ErrTxClosed)
 
 		created, err := repo.Create(ctx, category)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -89,7 +89,7 @@ func TestCategoryRepo_GetByID(t *testing.T) {
 			WillReturnError(pgx.ErrNoRows)
 
 		cat, err := repo.GetByID(ctx, catID)
-		assert.ErrorIs(t, err, domain.ErrCategoryNotFound)
+		require.ErrorIs(t, err, domain.ErrCategoryNotFound)
 		assert.Nil(t, cat)
 	})
 }
@@ -106,7 +106,7 @@ func TestCategoryRepo_GetByIDAndRestaurantID(t *testing.T) {
 	restaurantID := uuid.New()
 
 	t.Run("found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2").
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2"). //nolint:lll
 			WithArgs(catID, restaurantID).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "restaurant_id", "name", "sort_order"}).
@@ -121,12 +121,12 @@ func TestCategoryRepo_GetByIDAndRestaurantID(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2").
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE id = \\$1 AND restaurant_id = \\$2"). //nolint:lll
 			WithArgs(catID, restaurantID).
 			WillReturnError(pgx.ErrNoRows)
 
 		cat, err := repo.GetByIDAndRestaurantID(ctx, catID, restaurantID)
-		assert.ErrorIs(t, err, domain.ErrCategoryNotFound)
+		require.ErrorIs(t, err, domain.ErrCategoryNotFound)
 		assert.Nil(t, cat)
 	})
 }
@@ -144,7 +144,7 @@ func TestCategoryRepo_ListByRestaurantID(t *testing.T) {
 	cat2 := uuid.New()
 
 	t.Run("multiple rows", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC").
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC"). //nolint:lll
 			WithArgs(restaurantID).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "restaurant_id", "name", "sort_order"}).
@@ -160,7 +160,7 @@ func TestCategoryRepo_ListByRestaurantID(t *testing.T) {
 	})
 
 	t.Run("empty", func(t *testing.T) {
-		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC").
+		mock.ExpectQuery("SELECT id, restaurant_id, name, sort_order FROM categories WHERE restaurant_id = \\$1 ORDER BY sort_order ASC, name ASC"). //nolint:lll
 			WithArgs(restaurantID).
 			WillReturnRows(pgxmock.NewRows([]string{"id", "restaurant_id", "name", "sort_order"}))
 

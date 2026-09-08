@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
 	"github.com/hel1th/kitchen-service/internal/module/menu/domain"
 )
 
@@ -15,7 +16,12 @@ func NewCategoryUsecase(repo CategoryRepository) *CategoryUsecase {
 	return &CategoryUsecase{repo: repo}
 }
 
-func (uc *CategoryUsecase) AddCategory(ctx context.Context, restaurantID uuid.UUID, name string, sortOrder int) (*domain.Category, error) {
+func (uc *CategoryUsecase) AddCategory(
+	ctx context.Context,
+	restaurantID uuid.UUID,
+	name string,
+	sortOrder int,
+) (*domain.Category, error) {
 	cat := &domain.Category{
 		ID:           uuid.New(),
 		RestaurantID: restaurantID,
@@ -25,7 +31,7 @@ func (uc *CategoryUsecase) AddCategory(ctx context.Context, restaurantID uuid.UU
 	return uc.repo.Create(ctx, cat)
 }
 
-func (uc *CategoryUsecase) DeleteCategory(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID) error {
+func (uc *CategoryUsecase) DeleteCategory(ctx context.Context, restaurantID, id uuid.UUID) error {
 	// The repository returns domain.ErrCategoryNotEmpty if there are dishes.
 	return uc.repo.Delete(ctx, restaurantID, id)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
 	"github.com/hel1th/kitchen-service/internal/module/restaurant/domain"
 )
 

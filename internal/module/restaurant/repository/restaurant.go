@@ -99,7 +99,11 @@ func (r *RestaurantRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Res
 }
 
 // UpdateStatus updates the operational status of a restaurant.
-func (r *RestaurantRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status domain.RestaurantStatus) (*domain.Restaurant, error) {
+func (r *RestaurantRepo) UpdateStatus(
+	ctx context.Context,
+	id uuid.UUID,
+	status domain.RestaurantStatus,
+) (*domain.Restaurant, error) {
 	if !status.IsValid() {
 		return nil, domain.ErrInvalidRestaurantStatus
 	}
@@ -132,7 +136,7 @@ func (r *RestaurantRepo) UpdateStatus(ctx context.Context, id uuid.UUID, status 
 }
 
 // List returns a paginated list of restaurants matching the filter, along with the total count.
-func (r *RestaurantRepo) List(ctx context.Context, filter usecase.ListFilter) ([]domain.Restaurant, int, error) {
+func (r *RestaurantRepo) List(ctx context.Context, filter usecase.ListFilter) ([]domain.Restaurant, int, error) { //nolint:funlen
 	limit := filter.Limit
 	if limit <= 0 {
 		limit = 20

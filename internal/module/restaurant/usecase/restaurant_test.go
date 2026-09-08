@@ -5,8 +5,10 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hel1th/kitchen-service/internal/module/restaurant/domain"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/hel1th/kitchen-service/internal/module/restaurant/domain"
 )
 
 func TestRestaurantUsecase_SetStatus(t *testing.T) {
@@ -20,7 +22,7 @@ func TestRestaurantUsecase_SetStatus(t *testing.T) {
 	}
 
 	updated, err := uc.SetStatus(context.Background(), id, domain.StatusOpen)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, domain.StatusOpen, updated.Status)
 
 	// test invalid status
@@ -50,7 +52,7 @@ func TestRestaurantUsecase_List(t *testing.T) {
 		Limit:  10,
 	})
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, 2, total)
 	assert.Len(t, list, 2)
 }
@@ -66,15 +68,15 @@ func TestRestaurantUsecase_GetAndProvider(t *testing.T) {
 	}
 
 	r, err := uc.Get(context.Background(), id)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, id, r.ID)
 
 	r2, err := uc.GetRestaurant(context.Background(), id)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, id, r2.ID)
 
 	isOpen, err := uc.IsOpen(context.Background(), id)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, isOpen)
 
 	notFoundID := uuid.New()

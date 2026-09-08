@@ -58,7 +58,7 @@ func TestRestaurantRepo_Create(t *testing.T) {
 		}
 
 		created, err := repo.Create(ctx, restaurant)
-		assert.ErrorIs(t, err, domain.ErrInvalidRestaurantStatus)
+		require.ErrorIs(t, err, domain.ErrInvalidRestaurantStatus)
 		assert.Nil(t, created)
 	})
 
@@ -75,7 +75,7 @@ func TestRestaurantRepo_Create(t *testing.T) {
 			WillReturnError(errors.New("db error"))
 
 		created, err := repo.Create(ctx, restaurant)
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Nil(t, created)
 	})
 }
@@ -112,7 +112,7 @@ func TestRestaurantRepo_GetByID(t *testing.T) {
 			WillReturnError(pgx.ErrNoRows)
 
 		rest, err := repo.GetByID(ctx, restID)
-		assert.ErrorIs(t, err, domain.ErrRestaurantNotFound)
+		require.ErrorIs(t, err, domain.ErrRestaurantNotFound)
 		assert.Nil(t, rest)
 	})
 }
@@ -143,7 +143,7 @@ func TestRestaurantRepo_UpdateStatus(t *testing.T) {
 
 	t.Run("invalid status", func(t *testing.T) {
 		updated, err := repo.UpdateStatus(ctx, restID, domain.RestaurantStatus("invalid"))
-		assert.ErrorIs(t, err, domain.ErrInvalidRestaurantStatus)
+		require.ErrorIs(t, err, domain.ErrInvalidRestaurantStatus)
 		assert.Nil(t, updated)
 	})
 
@@ -153,7 +153,7 @@ func TestRestaurantRepo_UpdateStatus(t *testing.T) {
 			WillReturnError(pgx.ErrNoRows)
 
 		updated, err := repo.UpdateStatus(ctx, restID, domain.StatusOpen)
-		assert.ErrorIs(t, err, domain.ErrRestaurantNotFound)
+		require.ErrorIs(t, err, domain.ErrRestaurantNotFound)
 		assert.Nil(t, updated)
 	})
 }
@@ -183,7 +183,7 @@ func TestRestaurantRepo_List(t *testing.T) {
 			WithArgs(&statusStr).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(1))
 
-		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at FROM restaurants WHERE \\(\\$1::text IS NULL OR status = \\$1\\) ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3").
+		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at FROM restaurants WHERE \\(\\$1::text IS NULL OR status = \\$1\\) ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3"). //nolint:lll
 			WithArgs(&statusStr, 10, 0).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "name", "status", "webhook_url", "created_at"}).
@@ -207,7 +207,7 @@ func TestRestaurantRepo_List(t *testing.T) {
 			WithArgs((*string)(nil)).
 			WillReturnRows(pgxmock.NewRows([]string{"count"}).AddRow(2))
 
-		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at FROM restaurants WHERE \\(\\$1::text IS NULL OR status = \\$1\\) ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3").
+		mock.ExpectQuery("SELECT id, name, status, webhook_url, created_at FROM restaurants WHERE \\(\\$1::text IS NULL OR status = \\$1\\) ORDER BY created_at ASC, name ASC LIMIT \\$2 OFFSET \\$3"). //nolint:lll
 			WithArgs((*string)(nil), 20, 0).
 			WillReturnRows(
 				pgxmock.NewRows([]string{"id", "name", "status", "webhook_url", "created_at"}).

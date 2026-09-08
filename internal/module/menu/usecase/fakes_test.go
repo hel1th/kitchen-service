@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/hel1th/kitchen-service/internal/module/menu/domain"
 )
 
@@ -32,7 +33,10 @@ func (f *FakeCategoryRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.C
 	return cat, nil
 }
 
-func (f *FakeCategoryRepo) GetByIDAndRestaurantID(ctx context.Context, id uuid.UUID, restaurantID uuid.UUID) (*domain.Category, error) {
+func (f *FakeCategoryRepo) GetByIDAndRestaurantID(
+	ctx context.Context,
+	id, restaurantID uuid.UUID,
+) (*domain.Category, error) {
 	cat, ok := f.Categories[id]
 	if !ok || cat.RestaurantID != restaurantID {
 		return nil, domain.ErrCategoryNotFound
@@ -50,7 +54,7 @@ func (f *FakeCategoryRepo) ListByRestaurantID(ctx context.Context, restaurantID 
 	return list, nil
 }
 
-func (f *FakeCategoryRepo) Delete(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID) error {
+func (f *FakeCategoryRepo) Delete(ctx context.Context, restaurantID, id uuid.UUID) error {
 	if f.ErrDelete != nil {
 		return f.ErrDelete
 	}
@@ -81,7 +85,7 @@ func (f *FakeDishRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Dish,
 	return d, nil
 }
 
-func (f *FakeDishRepo) GetByIDAndRestaurantID(ctx context.Context, id uuid.UUID, restaurantID uuid.UUID) (*domain.Dish, error) {
+func (f *FakeDishRepo) GetByIDAndRestaurantID(ctx context.Context, id, restaurantID uuid.UUID) (*domain.Dish, error) {
 	d, ok := f.Dishes[id]
 	if !ok || d.RestaurantID != restaurantID {
 		return nil, domain.ErrDishNotFound
@@ -94,7 +98,7 @@ func (f *FakeDishRepo) Update(ctx context.Context, dish *domain.Dish) (*domain.D
 	return dish, nil
 }
 
-func (f *FakeDishRepo) SoftDelete(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID, at time.Time) error {
+func (f *FakeDishRepo) SoftDelete(ctx context.Context, restaurantID, id uuid.UUID, at time.Time) error {
 	d, ok := f.Dishes[id]
 	if !ok || d.RestaurantID != restaurantID {
 		return domain.ErrDishNotFound
@@ -103,7 +107,7 @@ func (f *FakeDishRepo) SoftDelete(ctx context.Context, restaurantID uuid.UUID, i
 	return nil
 }
 
-func (f *FakeDishRepo) Restore(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID, at time.Time) (*domain.Dish, error) {
+func (f *FakeDishRepo) Restore(ctx context.Context, restaurantID, id uuid.UUID, at time.Time) (*domain.Dish, error) {
 	d, ok := f.Dishes[id]
 	if !ok || d.RestaurantID != restaurantID {
 		return nil, domain.ErrDishNotFound
@@ -112,7 +116,12 @@ func (f *FakeDishRepo) Restore(ctx context.Context, restaurantID uuid.UUID, id u
 	return d, nil
 }
 
-func (f *FakeDishRepo) SetAvailability(ctx context.Context, restaurantID uuid.UUID, id uuid.UUID, available bool, at time.Time) (*domain.Dish, error) {
+func (f *FakeDishRepo) SetAvailability(
+	ctx context.Context,
+	restaurantID, id uuid.UUID,
+	available bool,
+	at time.Time,
+) (*domain.Dish, error) {
 	d, ok := f.Dishes[id]
 	if !ok || d.RestaurantID != restaurantID {
 		return nil, domain.ErrDishNotFound
@@ -121,7 +130,11 @@ func (f *FakeDishRepo) SetAvailability(ctx context.Context, restaurantID uuid.UU
 	return d, nil
 }
 
-func (f *FakeDishRepo) ListByRestaurantID(ctx context.Context, restaurantID uuid.UUID, includeDeleted bool) ([]domain.Dish, error) {
+func (f *FakeDishRepo) ListByRestaurantID(
+	ctx context.Context,
+	restaurantID uuid.UUID,
+	includeDeleted bool,
+) ([]domain.Dish, error) {
 	var list []domain.Dish
 	for _, d := range f.Dishes {
 		if d.RestaurantID == restaurantID {
@@ -143,6 +156,9 @@ func (f *FakeDishRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.
 	return list, nil
 }
 
-func (f *FakeDishRepo) GetMenuWithDishes(ctx context.Context, restaurantID uuid.UUID) ([]domain.CategoryWithDishes, error) {
+func (f *FakeDishRepo) GetMenuWithDishes(
+	ctx context.Context,
+	restaurantID uuid.UUID,
+) ([]domain.CategoryWithDishes, error) {
 	return nil, nil // not implemented for test
 }

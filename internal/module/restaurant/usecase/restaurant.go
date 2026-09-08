@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
 	"github.com/hel1th/kitchen-service/internal/module/restaurant/domain"
 )
 
@@ -15,7 +16,11 @@ func NewRestaurantUsecase(repo RestaurantRepository) *RestaurantUsecase {
 	return &RestaurantUsecase{repo: repo}
 }
 
-func (uc *RestaurantUsecase) SetStatus(ctx context.Context, id uuid.UUID, status domain.RestaurantStatus) (*domain.Restaurant, error) {
+func (uc *RestaurantUsecase) SetStatus(
+	ctx context.Context,
+	id uuid.UUID,
+	status domain.RestaurantStatus,
+) (*domain.Restaurant, error) {
 	if !status.IsValid() {
 		return nil, domain.ErrInvalidRestaurantStatus
 	}
