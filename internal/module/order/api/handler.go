@@ -57,7 +57,16 @@ func (h *OrderHandler) AddCartItem(w http.ResponseWriter, r *http.Request, param
 		return
 	}
 
-	h.GetCart(w, r, gen.GetCartParams(params))
+	cartWithDetails, err := h.orderUC.GetCart(r.Context(), params.XUserId)
+	if err != nil {
+		httperr.HandleError(w, err)
+		return
+	}
+
+	res := mapCart(cartWithDetails)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(res)
 }
 
 // RemoveCartItem Удалить блюдо из корзины
@@ -72,7 +81,7 @@ func (h *OrderHandler) RemoveCartItem(
 		return
 	}
 
-	h.GetCart(w, r, gen.GetCartParams(params))
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // UpdateCartItem Изменить количество блюда в корзине

@@ -41,10 +41,13 @@ func (r *DishRepo) Create(ctx context.Context, dish *domain.Dish) (*domain.Dish,
 	}
 
 	query := `
-		INSERT INTO dishes (id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at) //nolint:lll
+		INSERT INTO dishes (
+			id, restaurant_id, category_id, name,
+			description, price, available, deleted_at, created_at, updated_at
+		)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		RETURNING id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at
-	`
+		RETURNING id, restaurant_id, category_id, name,
+				description, price, available, deleted_at, created_at, updated_at`
 
 	var created domain.Dish
 	err := r.db.QueryRow(ctx, query,
@@ -113,7 +116,10 @@ func (r *DishRepo) GetByID(ctx context.Context, id uuid.UUID) (*domain.Dish, err
 }
 
 // GetByIDAndRestaurantID retrieves a dish by its ID and restaurant ID.
-func (r *DishRepo) GetByIDAndRestaurantID(ctx context.Context, id, restaurantID uuid.UUID) (*domain.Dish, error) {
+func (r *DishRepo) GetByIDAndRestaurantID(
+	ctx context.Context,
+	id, restaurantID uuid.UUID,
+) (*domain.Dish, error) {
 	query := `
 		SELECT id, restaurant_id, category_id, name, description, price, available, deleted_at, created_at, updated_at
 		FROM dishes
@@ -231,7 +237,11 @@ func (r *DishRepo) SoftDelete(ctx context.Context, restaurantID, id uuid.UUID, a
 
 // Restore resets deleted_at = NULL for a soft-deleted dish.
 // If the dish is not deleted, it returns domain.ErrDishNotDeleted.
-func (r *DishRepo) Restore(ctx context.Context, restaurantID, id uuid.UUID, at time.Time) (*domain.Dish, error) {
+func (r *DishRepo) Restore(
+	ctx context.Context,
+	restaurantID, id uuid.UUID,
+	at time.Time,
+) (*domain.Dish, error) {
 	query := `
 		UPDATE dishes
 		SET deleted_at = NULL,
@@ -415,7 +425,10 @@ func (r *DishRepo) GetByIDs(ctx context.Context, ids []uuid.UUID) ([]domain.Dish
 }
 
 // GetMenuWithDishes returns categories along with their active (non-deleted) dishes for a given restaurant.
-func (r *DishRepo) GetMenuWithDishes(ctx context.Context, restaurantID uuid.UUID) ([]domain.CategoryWithDishes, error) { //nolint:funlen
+func (r *DishRepo) GetMenuWithDishes(
+	ctx context.Context,
+	restaurantID uuid.UUID,
+) ([]domain.CategoryWithDishes, error) { //nolint:funlen
 	categoriesQuery := `
 		SELECT id, restaurant_id, name, sort_order
 		FROM categories
